@@ -1,0 +1,32 @@
+# 开发环境配置（依赖 docker compose 本地基础设施）
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/devflow_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: devflow
+    password: devflow123
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: devflow
+    password: devflow123
+
+langchain4j:
+  open-ai:
+    api-key: ${OPENAI_API_KEY:sk-placeholder}
+    base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+    model-name: ${OPENAI_MODEL:deepseek-chat}
+
+devflow:
+  auth:
+    admin-password: devflow2024
+    operator-password: devflow2024
+
+logging:
+  level:
+    com.devflow: DEBUG
+    dev.langchain4j: DEBUG
+    org.springframework.security: DEBUG

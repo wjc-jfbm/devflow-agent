@@ -1,0 +1,63 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MYSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.amqp.RabbitHealthContributorAutoConfiguration
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      db-type: h2
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+langchain4j:
+  open-ai:
+    api-key: sk-test-key
+    base-url: http://localhost:8081
+    model-name: test-model
+    temperature: 0.1
+    max-tokens: 1024
+    timeout: 5s
+
+github:
+  webhook:
+    secret: test-secret
+  token: test-token
+
+devflow:
+  workspace:
+    base-path: ${java.io.tmpdir}/devflow-workspace
+  approval:
+    enabled: true
+    phases: ARCHITECT,REVIEW
+  agent:
+    max-retries: 1
+    parallel-review: false
+  auth:
+    admin-password: admin123
+    operator-password: operator123
+
+logging:
+  level:
+    com.devflow: DEBUG
+    dev.langchain4j: WARN
+    org.springframework.security: WARN

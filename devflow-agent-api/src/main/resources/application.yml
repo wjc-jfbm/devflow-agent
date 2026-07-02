@@ -1,0 +1,79 @@
+server:
+  port: 8080
+
+# Actuator 健康检查
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spring:
+  application:
+    name: devflow-agent
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3307/devflow_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false}
+    username: ${DB_USERNAME:devflow}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:devflow}
+    password: ${RABBITMQ_PASSWORD:}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 1
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# LangChain4j 配置
+langchain4j:
+  open-ai:
+    api-key: ${OPENAI_API_KEY:sk-placeholder}
+    base-url: ${OPENAI_BASE_URL:https://api.deepseek.com}
+    model-name: ${OPENAI_MODEL:deepseek-chat}
+    temperature: 0.1
+    max-tokens: 4096
+    timeout: 120s
+
+# GitHub Webhook 配置
+github:
+  webhook:
+    secret: ${GITHUB_WEBHOOK_SECRET:}
+  token: ${GITHUB_TOKEN:}
+
+# DevFlow 自定义配置
+devflow:
+  workspace:
+    base-path: ${java.io.tmpdir}/devflow-workspace
+  approval:
+    enabled: true
+    phases: ARCHITECT,REVIEW
+  agent:
+    max-retries: 3
+    parallel-review: true
+  auth:
+    admin-password: ${DEVFLOW_ADMIN_PASSWORD:}
+    operator-password: ${DEVFLOW_OPERATOR_PASSWORD:}
+
+logging:
+  level:
+    com.devflow: DEBUG
+    dev.langchain4j: DEBUG

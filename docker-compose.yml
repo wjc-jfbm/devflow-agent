@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: devflow-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: devflow123
+      MYSQL_DATABASE: devflow_agent
+      MYSQL_USER: devflow
+      MYSQL_PASSWORD: devflow123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis:
+    image: redis:7-alpine
+    container_name: devflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: devflow-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: devflow
+      RABBITMQ_DEFAULT_PASS: devflow123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  pgvector:
+    image: pgvector/pgvector:0.8.0-pg16
+    container_name: devflow-pgvector
+    environment:
+      POSTGRES_DB: devflow_vectors
+      POSTGRES_USER: devflow
+      POSTGRES_PASSWORD: devflow123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+  pgvector_data:
