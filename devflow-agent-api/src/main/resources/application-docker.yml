@@ -1,0 +1,25 @@
+# Docker 环境配置（容器内运行，通过服务名连接中间件）
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://mysql:3306/devflow_agent?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false}
+    username: ${DB_USERNAME:devflow}
+    password: ${DB_PASSWORD:devflow123}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:devflow}
+    password: ${RABBITMQ_PASSWORD:devflow123}
+
+devflow:
+  auth:
+    admin-password: ${DEVFLOW_ADMIN_PASSWORD:devflow2024}
+    operator-password: ${DEVFLOW_OPERATOR_PASSWORD:devflow2024}
+
+logging:
+  level:
+    com.devflow: INFO
+    dev.langchain4j: INFO
