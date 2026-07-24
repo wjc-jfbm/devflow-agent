@@ -48,10 +48,11 @@ jobs:
       - name: Compile
         run: mvn compile -q
 
-      - name: Run tests
-        run: mvn test -pl devflow-agent-core -am
+      - name: Run tests (core only, skip integration tests)
+        run: mvn test -pl devflow-agent-core -Dtest='!com.devflow.api.**' -am
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # 单元测试 mock 了 AI 模型，不需要真实 Key
+          OPENAI_API_KEY: sk-ci-dummy-key-not-used-by-unit-tests
           DB_URL: jdbc:mysql://localhost:3306/devflow_agent?useSSL=false&allowPublicKeyRetrieval=true
           DB_USERNAME: root
           DB_PASSWORD: devflow123
