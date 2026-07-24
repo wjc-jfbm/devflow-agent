@@ -27,6 +27,9 @@ public class SecurityConfig {
     @Value("${devflow.auth.operator-password:#{null}}")
     private String operatorPassword;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.profiles.active:}")
+    private String activeProfile;
+
     private static final String DEFAULT_PASSWORD = "devflow2024";
 
     @Bean
@@ -58,21 +61,31 @@ public class SecurityConfig {
 
     /**
      * 内存用户，密码从环境变量注入
-     * 生产环境建议替换为数据库/JWT/OAuth2
+     *
+     * - dev/profile 未激活: 使用默认密码 "devflow2024"，打印警告
+     * - prod 环境: 强制要求通过环境变量设置密码，否则启动失败
+     * - 生产环境建议替换为数据库/JWT/OAuth2
      */
     @Bean
     public UserDetailsService userDetailsService() {
-        // 密码默认值仅供开发环境使用
         // 注意：application.yml 中 ${ENV_VAR:} 默认值为空字符串 ""，不是 null
-        // 因此需要同时检查 null 和空字符串
         boolean adminPwdNotSet = (adminPassword == null || adminPassword.isEmpty());
         boolean operatorPwdNotSet = (operatorPassword == null || operatorPassword.isEmpty());
-        String adminPwd = adminPwdNotSet ? DEFAULT_PASSWORD : adminPassword;
-        String operatorPwd = operatorPwdNotSet ? DEFAULT_PASSWORD : operatorPassword;
+        boolean isProd = "prod".equals(activeProfile);
+
+        if (isProd && (adminPwdNotSet || operatorPwdNotSet)) {
+            String msg = "PRODUCTION MODE: DEVFLOW_ADMIN_PASSWORD and DEVFLOW_OPERATOR_PASSWORD must be set as environment variables. "
+                    + "Starting without these is forbidden in prod profile.";
+            throw new IllegalStateException(msg);
+        }
 
         if (adminPwdNotSet || operatorPwdNotSet) {
-            System.err.println("WARNING: DEVFLOW_ADMIN_PASSWORD or DEVFLOW_OPERATOR_PASSWORD not set, using default. Set env variables for production!");
+            System.err.println("WARNING: DEVFLOW_ADMIN_PASSWORD or DEVFLOW_OPERATOR_PASSWORD not set, using default 'devflow2024'. "
+                    + "This is NOT safe for production!");
         }
+
+        String adminPwd = adminPwdNotSet ? DEFAULT_PASSWORD : adminPassword;
+        String operatorPwd = operatorPwdNotSet ? DEFAULT_PASSWORD : operatorPassword;
 
         var admin = User.builder()
                 .username("admin")

@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.devflow.common.model.PageResult;
 
 @Slf4j
 @Service
@@ -38,9 +40,11 @@ public class ProjectService {
         return project;
     }
 
-    public List<Project> listProjects() {
-        log.debug("Listing all projects");
-        return projectRepository.list();
+    public PageResult<Project> listProjects(int page, int size) {
+        log.debug("Listing projects: page={}, size={}", page, size);
+        IPage<Project> result = projectRepository.page(new Page<>(page, size));
+        return PageResult.of(result.getCurrent(), result.getSize(),
+                result.getTotal(), result.getRecords());
     }
 
     public Project updateProject(Project project) {

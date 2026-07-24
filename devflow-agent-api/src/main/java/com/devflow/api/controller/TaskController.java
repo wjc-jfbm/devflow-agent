@@ -4,14 +4,13 @@ import com.devflow.api.dto.ApprovalRequest;
 import com.devflow.api.dto.TaskCreateRequest;
 import com.devflow.api.dto.TaskProgressVO;
 import com.devflow.api.service.TaskService;
+import com.devflow.common.model.PageResult;
 import com.devflow.common.model.R;
 import com.devflow.infra.persistence.entity.Task;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 任务管理控制器
@@ -44,8 +43,11 @@ public class TaskController {
      * 获取任务列表
      */
     @GetMapping
-    public R<List<Task>> listTasks(@RequestParam(required = false) Long projectId) {
-        return R.ok(taskService.listTasks(projectId));
+    public R<PageResult<Task>> listTasks(
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return R.ok(taskService.listTasks(projectId, page, size));
     }
 
     /**
@@ -63,6 +65,14 @@ public class TaskController {
     public R<Void> approveTask(@PathVariable Long id, @Valid @RequestBody ApprovalRequest request) {
         taskService.approveTask(id, request.getApprover(), request.getComment(), request.getAction());
         return R.ok();
+    }
+
+    /**
+     * 重试失败的任务
+     */
+    @PostMapping("/{id}/retry")
+    public R<Task> retryTask(@PathVariable Long id) {
+        return R.ok(taskService.retryTask(id));
     }
 
     /**

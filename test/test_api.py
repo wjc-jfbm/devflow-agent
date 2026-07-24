@@ -7,14 +7,15 @@ import json
 import time
 import argparse
 import sys
+import os
 import base64
 import urllib.request
 import urllib.error
 import ssl
 
-BASE_URL = "http://localhost:8080"
-API_USERNAME = "admin"
-API_PASSWORD = "devflow2024"
+BASE_URL = os.environ.get("DEVFLOW_TEST_URL", "http://localhost:8080")
+API_USERNAME = os.environ.get("DEVFLOW_TEST_USER", "admin")
+API_PASSWORD = os.environ.get("DEVFLOW_TEST_PASSWORD", "devflow2024")
 
 POLL_INTERVAL_SEC = 2
 POLL_MAX_WAIT_SEC = 60
@@ -22,8 +23,10 @@ REQUEST_TIMEOUT_SEC = 10
 
 
 class DevFlowAPITester:
-    def __init__(self, base_url=BASE_URL):
+    def __init__(self, base_url=BASE_URL, username=API_USERNAME, password=API_PASSWORD):
         self.base_url = base_url
+        self.username = username
+        self.password = password
         self.auth_header = self._build_auth_header()
         self.timeout = REQUEST_TIMEOUT_SEC
         self.project_id = None
@@ -31,7 +34,7 @@ class DevFlowAPITester:
         self.created_ids = []
 
     def _build_auth_header(self):
-        credentials = f"{API_USERNAME}:{API_PASSWORD}"
+        credentials = f"{self.username}:{self.password}"
         encoded = base64.b64encode(credentials.encode()).decode()
         return f"Basic {encoded}"
 
@@ -392,6 +395,8 @@ class DevFlowAPITester:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DevFlow Agent API 自动化测试")
     parser.add_argument("--url", default=BASE_URL, help="API基础URL")
+    parser.add_argument("--user", default=API_USERNAME, help="API用户名")
+    parser.add_argument("--password", default=API_PASSWORD, help="API密码")
     parser.add_argument("--skip-health", action="store_true", help="跳过健康检查")
     parser.add_argument("--cleanup", action="store_true", help="测试完成后清理测试数据")
     parser.add_argument("--poll-timeout", type=int, default=POLL_MAX_WAIT_SEC,
@@ -399,6 +404,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     POLL_MAX_WAIT_SEC = args.poll_timeout
-    tester = DevFlowAPITester(args.url)
+    tester = DevFlowAPITester(args.url, args.user, args.password)
     success = tester.run_all_tests(args.skip_health, args.cleanup)
     sys.exit(0 if success else 1)

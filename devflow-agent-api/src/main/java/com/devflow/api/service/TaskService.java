@@ -2,6 +2,9 @@ package com.devflow.api.service;
 
 import com.devflow.api.dto.TaskCreateRequest;
 import com.devflow.api.dto.TaskProgressVO;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.devflow.common.model.PageResult;
 import com.devflow.common.enums.TaskStatus;
 import com.devflow.common.enums.WorkflowPhase;
 import com.devflow.common.exception.BusinessException;
@@ -64,12 +67,21 @@ public class TaskService {
         return task;
     }
 
-    public List<Task> listTasks(Long projectId) {
-        log.debug("Listing tasks: projectId={}", projectId);
+    public PageResult<Task> listTasks(Long projectId, int page, int size) {
+        log.debug("Listing tasks: projectId={}, page={}, size={}", projectId, page, size);
+        IPage<Task> result;
         if (projectId != null) {
-            return taskRepository.findByProjectId(projectId);
+            result = taskRepository.lambdaQuery()
+                    .eq(Task::getProjectId, projectId)
+                    .orderByDesc(Task::getCreatedAt)
+                    .page(new Page<>(page, size));
+        } else {
+            result = taskRepository.lambdaQuery()
+                    .orderByDesc(Task::getCreatedAt)
+                    .page(new Page<>(page, size));
         }
-        return taskRepository.list();
+        return PageResult.of(result.getCurrent(), result.getSize(),
+                result.getTotal(), result.getRecords());
     }
 
     public TaskProgressVO getTaskProgress(Long taskId) {
@@ -116,6 +128,31 @@ public class TaskService {
         }
 
         log.info("Task approval completed: taskId={}, action={}", taskId, action);
+    }
+
+    /**
+     * 重试失败的任务 — 将任务重置为 PENDING 并通过 MQ 重新触发工作流
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Task retryTask(Long id) {
+        Task task = taskRepository.getById(id);
+        if (task == null) {
+            throw new BusinessException(404, "Task not found: " + id);
+        }
+        if (!TaskStatus.FAILED.getCode().equals(task.getStatus())) {
+            throw new BusinessException("Only FAILED tasks can be retried, current status: " + task.getStatus());
+        }
+        log.info("Retrying failed task: id={}, issueTitle={}", id, task.getIssueTitle());
+
+        // 重置状态并重新发送到 MQ
+        task.setStatus(TaskStatus.PENDING.getCode());
+        task.setCurrentPhase(WorkflowPhase.INIT.getCode());
+        task.setErrorMsg(null);
+        taskRepository.updateById(task);
+
+        taskProducer.sendTask(task.getId());
+        log.info("Task retry message sent to MQ: taskId={}", task.getId());
+        return task;
     }
 
     public void deleteTask(Long id) {

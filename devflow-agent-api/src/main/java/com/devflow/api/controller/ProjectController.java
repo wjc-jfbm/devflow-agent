@@ -1,6 +1,7 @@
 package com.devflow.api.controller;
 
 import com.devflow.api.dto.ProjectCreateRequest;
+import com.devflow.common.model.PageResult;
 import com.devflow.common.model.R;
 import com.devflow.infra.persistence.entity.Project;
 import com.devflow.api.service.ProjectService;
@@ -8,8 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 项目管理控制器
@@ -40,8 +39,10 @@ public class ProjectController {
     }
 
     @GetMapping
-    public R<List<Project>> listProjects() {
-        return R.ok(projectService.listProjects());
+    public R<PageResult<Project>> listProjects(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return R.ok(projectService.listProjects(page, size));
     }
 
     @PutMapping("/{id}")
