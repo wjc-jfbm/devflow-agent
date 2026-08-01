@@ -181,6 +181,20 @@ devflow-agent/
 
 ---
 
+##  🖼  运行截图
+
+![Swagger API 文档](docs/images/swagger.png)
+![仪表盘统计](docs/images/dashboard.png)
+![Docker 运行状态](docs/images/docker-ps.png)
+
+## 🖼 运行截图
+
+| Swagger API 文档 | 仪表盘统计 | Docker 运行状态 |
+|:---:|:---:|:---:|
+| ![Swagger](docs/images/swagger.png) | ![Dashboard](docs/images/dashboard.png) | ![Docker](docs/images/docker-ps.png) |
+
+---
+
 ## 📊 任务统计看板
 
 部署后访问 `GET /api/dashboard/stats` 可获取：
