@@ -49,7 +49,7 @@ jobs:
         run: mvn compile -q
 
       - name: Run tests (core only, skip integration tests)
-        run: mvn test -pl devflow-agent-core -Dtest='!com.devflow.api.**' -am
+        run: mvn test -pl devflow-agent-core -am -Dsurefire.failIfNoSpecifiedTests=false
         env:
           # 单元测试 mock 了 AI 模型，不需要真实 Key
           OPENAI_API_KEY: sk-ci-dummy-key-not-used-by-unit-tests
