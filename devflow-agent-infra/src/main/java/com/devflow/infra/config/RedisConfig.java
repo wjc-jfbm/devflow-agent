@@ -16,22 +16,33 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis 配置
+ *
+ * 性能优化：
+ * - ObjectMapper 提取为独立 Bean（线程安全，全局复用），避免重复创建
  */
 @Configuration
 @Profile("!test")
 public class RedisConfig {
 
+    /**
+     * 全局共享 ObjectMapper — Jackson 序列化/反序列化的核心 Bean
+     * ObjectMapper 是线程安全的，应被其他 Bean 注入复用
+     */
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(factory);
-
+    public ObjectMapper redisObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        return mapper;
+    }
 
-        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(mapper, Object.class);
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory, ObjectMapper redisObjectMapper) {
+        RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(factory);
+
+        Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(redisObjectMapper, Object.class);
         StringRedisSerializer stringSerializer = new StringRedisSerializer();
 
         template.setKeySerializer(stringSerializer);

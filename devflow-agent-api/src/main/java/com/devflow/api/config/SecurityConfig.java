@@ -16,6 +16,13 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Spring Security 安全配置
  * 凭证通过环境变量注入，避免硬编码
+ *
+ * 当前使用 InMemoryUserDetailsManager — 适合单实例小团队部署。
+ * 生产环境升级路径（多用户 / 多实例）：
+ *   1. 创建 users 表：id, username, password_hash, roles, enabled
+ *   2. 替换为 JdbcUserDetailsManager
+ *   3. 添加 spring-boot-starter-oauth2-resource-server + JWT
+ *   4. httpBasic() 改为 Bearer Token 认证
  */
 @Configuration
 @EnableWebSecurity

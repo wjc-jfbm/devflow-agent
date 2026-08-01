@@ -1,0 +1,20 @@
+# ============================================
+# DevFlow Agent — Production Overrides
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# ============================================
+
+services:
+  # 生产环境：app 不对外暴露端口，只通过 nginx 反向代理访问
+  app:
+    ports: []  # 覆盖 dev compose 中的 "8080:8080"
+
+  # 基础设施：不对外暴露端口（只在 Docker 内部网络可达）
+  mysql:
+    ports: []
+  redis:
+    ports: []
+  rabbitmq:
+    ports:
+      - "15672:15672"  # 保留管理界面（可通过防火墙限制源 IP）
+  pgvector:
+    ports: []

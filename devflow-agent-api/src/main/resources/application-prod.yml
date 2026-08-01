@@ -47,6 +47,8 @@ spring:
       simple:
         acknowledge-mode: auto
         prefetch: 1
+        concurrency: 4
+        max-concurrency: 10
         retry:
           enabled: true
           max-attempts: 3
@@ -66,6 +68,7 @@ langchain4j:
     temperature: 0.1
     max-tokens: 4096
     timeout: 180s
+    max-retries: 2
 
 # GitHub
 github:
@@ -97,3 +100,22 @@ logging:
     path: /data/devflow/logs
     max-size: 100MB
     max-history: 30
+
+# Resilience4j — AI API 限流 + 熔断
+# DeepSeek 通常限制 60 RPM，这里设为 50 留缓冲
+resilience4j:
+  ratelimiter:
+    instances:
+      deepseek:
+        limit-for-period: 50
+        limit-refresh-period: 60s
+        timeout-duration: 30s
+  circuitbreaker:
+    instances:
+      deepseek:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true

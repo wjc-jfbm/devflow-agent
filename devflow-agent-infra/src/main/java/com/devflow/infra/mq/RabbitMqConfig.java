@@ -44,7 +44,11 @@ public class RabbitMqConfig {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(jsonMessageConverter());
+        // prefetch=1: 每个消费者一次只取 1 条消息，避免长任务阻塞其他消费者
         factory.setPrefetchCount(1);
+        // 并发消费者：最少 4 个，峰值 10 个 — 支撑 50+ 并发用户
+        factory.setConcurrentConsumers(4);
+        factory.setMaxConcurrentConsumers(10);
         // AcknowledgeMode defaults to AUTO, which is the expected behavior
         return factory;
     }

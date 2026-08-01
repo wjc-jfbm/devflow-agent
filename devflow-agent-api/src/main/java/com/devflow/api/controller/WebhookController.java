@@ -40,6 +40,18 @@ public class WebhookController {
     private String webhookSecret;
 
     /**
+     * ThreadLocal 缓存 HmacSHA256 Mac 实例
+     * Mac 不是线程安全的，但 clone() 很快 — 用 ThreadLocal 避免 getInstance() 的同步锁竞争
+     */
+    private final ThreadLocal<Mac> hmacThreadLocal = ThreadLocal.withInitial(() -> {
+        try {
+            return Mac.getInstance("HmacSHA256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("HmacSHA256 not available", e);
+        }
+    });
+
+    /**
      * 接收 GitHub Webhook 事件
      */
     @PostMapping("/github")
@@ -120,20 +132,21 @@ public class WebhookController {
 
     /**
      * 验证 GitHub Webhook HMAC-SHA256 签名（恒定时间比较防止时序攻击）
+     * 使用 ThreadLocal Mac 缓存避免每次 getInstance() 的同步开销
      */
     private boolean verifySignature(byte[] payload, String signatureHeader) {
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
+            Mac mac = hmacThreadLocal.get();
+            mac.reset();
             SecretKeySpec secretKeySpec = new SecretKeySpec(
                     webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] computedHash = mac.doFinal(payload);
             String computedSignature = "sha256=" + HexFormat.of().formatHex(computedHash);
-            // 使用 MessageDigest.isEqual 进行恒定时间比较，防止时序攻击
             return MessageDigest.isEqual(
                     computedSignature.getBytes(StandardCharsets.UTF_8),
                     signatureHeader.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+        } catch (InvalidKeyException e) {
             log.error("Failed to verify webhook signature", e);
             return false;
         }

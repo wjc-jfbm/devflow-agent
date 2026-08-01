@@ -30,13 +30,19 @@ spring:
       simple:
         acknowledge-mode: auto
         prefetch: 1
+        concurrency: 4
+        max-concurrency: 10
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 5000
 
 # MyBatis-Plus 配置
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       logic-delete-field: deleted
@@ -52,6 +58,7 @@ langchain4j:
     temperature: 0.1
     max-tokens: 4096
     timeout: 120s
+    max-retries: 2
 
 # GitHub Webhook 配置
 github:
@@ -77,3 +84,21 @@ logging:
   level:
     com.devflow: DEBUG
     dev.langchain4j: DEBUG
+
+# Resilience4j 默认配置（开发环境宽松限制）
+resilience4j:
+  ratelimiter:
+    instances:
+      deepseek:
+        limit-for-period: 30
+        limit-refresh-period: 60s
+        timeout-duration: 60s
+  circuitbreaker:
+    instances:
+      deepseek:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true

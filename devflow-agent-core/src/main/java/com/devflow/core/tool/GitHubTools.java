@@ -15,9 +15,14 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * GitHub API 工具集
+ *
+ * 性能优化：
+ * - GitHub 客户端通过 ConcurrentHashMap 缓存，避免每次调用都重新创建 HTTP 连接
+ * - 同一次流水线中多个 Agent 调用共享同一个客户端实例
  */
 @Slf4j
 @Component
@@ -29,6 +34,9 @@ public class GitHubTools {
     @Value("${github.token:}")
     private String githubToken;
 
+    /** GitHub 客户端缓存 — key 为 effective token，null key 表示匿名连接 */
+    private final ConcurrentHashMap<String, GitHub> clientCache = new ConcurrentHashMap<>();
+
     /**
      * 获取 GitHub 客户端（使用全局默认 token）
      */
@@ -38,17 +46,26 @@ public class GitHubTools {
 
     /**
      * 获取 GitHub 客户端（优先使用项目级 token，fallback 到全局 token）
+     * 通过 ConcurrentHashMap 缓存，避免重复创建 HTTP 连接
      */
     private GitHub getGitHubClient(String projectToken) {
         try {
             String effectiveToken = (projectToken != null && !projectToken.isEmpty())
                     ? projectToken : githubToken;
-            if (effectiveToken != null && !effectiveToken.isEmpty()) {
-                return GitHub.connectUsingOAuth(effectiveToken);
-            }
-            return GitHub.connectAnonymously();
-        } catch (IOException e) {
-            throw new BusinessException("Failed to connect to GitHub", e);
+            String cacheKey = (effectiveToken != null && !effectiveToken.isEmpty())
+                    ? effectiveToken : "__anonymous__";
+            return clientCache.computeIfAbsent(cacheKey, key -> {
+                try {
+                    if ("__anonymous__".equals(key)) {
+                        return GitHub.connectAnonymously();
+                    }
+                    return GitHub.connectUsingOAuth(key);
+                } catch (IOException e) {
+                    throw new BusinessException("Failed to connect to GitHub", e);
+                }
+            });
+        } catch (BusinessException e) {
+            throw e;
         }
     }
 

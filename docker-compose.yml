@@ -3,10 +3,10 @@ services:
     image: mysql:8.0
     container_name: devflow-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: devflow123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-devflow123}
       MYSQL_DATABASE: devflow_agent
-      MYSQL_USER: devflow
-      MYSQL_PASSWORD: devflow123
+      MYSQL_USER: ${MYSQL_USER:-devflow}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devflow123}
     ports:
       - "3307:3306"
     volumes:
@@ -14,10 +14,19 @@ services:
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "devflow", "-pdevflow123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-devflow}", "-p${MYSQL_PASSWORD:-devflow123}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   redis:
     image: redis:7-alpine
@@ -32,13 +41,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: devflow-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: devflow
-      RABBITMQ_DEFAULT_PASS: devflow123
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-devflow}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-devflow123}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -49,18 +64,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   pgvector:
     image: pgvector/pgvector:0.8.0-pg16
     container_name: devflow-pgvector
     environment:
       POSTGRES_DB: devflow_vectors
-      POSTGRES_USER: devflow
-      POSTGRES_PASSWORD: devflow123
+      POSTGRES_USER: ${POSTGRES_USER:-devflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devflow123}
     ports:
       - "5432:5432"
     volumes:
       - pgvector_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
   app:
     build: .
@@ -85,7 +112,8 @@ services:
       - RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
       - RABBITMQ_USERNAME=${RABBITMQ_USERNAME:-devflow}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-devflow123}
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-docker}
+      - JAVA_OPTS=${JAVA_OPTS:-}
     depends_on:
       mysql:
         condition: service_healthy
@@ -93,9 +121,43 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: devflow-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - app
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   mysql_data:
   redis_data:
   rabbitmq_data:
   pgvector_data:
+  nginx_logs:

@@ -31,8 +31,9 @@ public class TaskConsumer {
     @RabbitListener(queues = RabbitMqConfig.TASK_QUEUE)
     public void onTaskMessage(Long taskId) {
         log.info("Received task message, taskId={}", taskId);
+        Task task = null;
         try {
-            Task task = taskRepository.getById(taskId);
+            task = taskRepository.getById(taskId);
             if (task == null) {
                 log.error("Task not found for taskId={}, message will be discarded", taskId);
                 return;
@@ -44,17 +45,18 @@ public class TaskConsumer {
             log.error("Error processing task message, taskId={}", taskId, e);
             // 尝试将任务标记为失败，避免永久卡在 PENDING 状态
             try {
-                Task task = taskRepository.getById(taskId);
                 if (task != null) {
                     task.setStatus(TaskStatus.FAILED.getCode());
                     String errMsg = e.getMessage();
                     task.setErrorMsg("Workflow failed: " + (errMsg != null ? errMsg.substring(0, Math.min(errMsg.length(), 500)) : "unknown error"));
                     taskRepository.updateById(task);
                     log.info("Task {} marked as FAILED due to processing error", taskId);
+                } else {
+                    log.error("CRITICAL: Task {} not found for status update", taskId);
+                    throw new RuntimeException("Task not found for status update: taskId=" + taskId, e);
                 }
             } catch (Exception updateEx) {
                 log.error("CRITICAL: Failed to update task status to FAILED for taskId={}, re-throwing to trigger MQ retry", taskId, updateEx);
-                // 重新抛出异常触发 RabbitMQ nack，使消息可以被重新投递
                 throw new RuntimeException("Failed to update task status after workflow error for taskId=" + taskId, updateEx);
             }
         }

@@ -37,8 +37,16 @@ logs/
 .env
 .env.local
 .env.*.local
-# .env.example is the template — always tracked
+# .env.example and .env.production are templates — always tracked
 !.env.example
+!.env.production
+
+# SSL certificates (except placeholder)
+nginx/ssl/*.pem
+!nginx/ssl/.gitkeep
+
+# App data
+/data/devflow/
 
 # Test
 test/__pycache__/
